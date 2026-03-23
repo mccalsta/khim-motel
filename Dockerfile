@@ -3,13 +3,15 @@ FROM nginx:alpine
 # Remove default nginx static files
 RUN rm -rf /usr/share/nginx/html/*
 
-# Copy our custom nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy our nginx config template
+COPY nginx.conf /etc/nginx/templates/default.conf.template
 
-# Copy the website files from the site/ folder
+# Copy the website files
 COPY site/ /usr/share/nginx/html/
 
-# Expose port 80
-EXPOSE 80
+# Railway sets $PORT dynamically — envsubst injects it at container start
+ENV PORT=80
 
-CMD ["nginx", "-g", "daemon off;"]
+EXPOSE $PORT
+
+CMD ["/bin/sh", "-c", "envsubst '$PORT' < /etc/nginx/templates/default.conf.template > /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
