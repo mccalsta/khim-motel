@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>KHIM Motel — Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #C8A96E; --gold-light: #E2C896;
+      --dark: #0D0D0B; --dark-2: #1A1A16; --dark-3: #242420; --dark-4: #2e2e28;
+      --text: #E8E2D6; --text-muted: #9A9080; --white: #FDFAF4;
+      --green: #4CAF50; --red: #e05555; --yellow: #e0b455;
+    }
+    body { background: var(--dark); color: var(--text); font-family: 'Jost', sans-serif; font-weight: 300; min-height: 100vh; }
+
+    /* ─── LOGIN ─── */
+    #login-screen {
+      position: fixed; inset: 0; background: var(--dark); z-index: 999;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .login-box {
+      width: 380px; padding: 3rem;
+      background: var(--dark-2);
+      border: 1px solid rgba(200,169,110,0.2);
+    }
+    .login-logo {
+      font-family: 'Cormorant Garamond', serif; font-size: 2rem; color: var(--gold);
+      letter-spacing: 0.15em; text-align: center; margin-bottom: 0.3rem;
+    }
+    .login-sub { text-align: center; font-size: 0.72rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 2.5rem; }
+    .login-label { display: block; font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.5rem; }
+    .login-input {
+      width: 100%; background: var(--dark-3); border: 1px solid rgba(200,169,110,0.15);
+      color: var(--text); font-family: 'Jost', sans-serif; font-size: 0.95rem;
+      padding: 0.75rem 1rem; outline: none; margin-bottom: 1.2rem; transition: border-color 0.3s;
+    }
+    .login-input:focus { border-color: var(--gold); }
+    .login-btn {
+      width: 100%; background: var(--gold); color: var(--dark); border: none;
+      padding: 1rem; font-family: 'Jost', sans-serif; font-size: 0.8rem;
+      letter-spacing: 0.25em; text-transform: uppercase; cursor: pointer; transition: background 0.3s; font-weight: 500;
+    }
+    .login-btn:hover { background: var(--gold-light); }
+    .login-error { color: var(--red); font-size: 0.78rem; margin-top: 0.8rem; text-align: center; display: none; }
+    .login-hint { font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 1.2rem; }
+
+    /* ─── LAYOUT ─── */
+    #app { display: none; min-height: 100vh; }
+    .sidebar {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 240px;
+      background: var(--dark-2); border-right: 1px solid rgba(200,169,110,0.1);
+      display: flex; flex-direction: column; padding: 2rem 0; z-index: 50;
+    }
+    .sidebar-logo {
+      font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: var(--gold);
+      letter-spacing: 0.12em; padding: 0 1.8rem 2rem; border-bottom: 1px solid rgba(200,169,110,0.1);
+    }
+    .sidebar-logo span { display: block; font-size: 0.6rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--text-muted); margin-top: 0.2rem; font-family: 'Jost', sans-serif; font-weight: 300; }
+    .sidebar-nav { flex: 1; padding: 1.5rem 0; }
+    .nav-item {
+      display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem 1.8rem;
+      font-size: 0.82rem; letter-spacing: 0.1em; color: var(--text-muted);
+      cursor: pointer; transition: all 0.25s; border-left: 2px solid transparent;
+    }
+    .nav-item:hover { color: var(--text); background: rgba(200,169,110,0.05); }
+    .nav-item.active { color: var(--gold); border-left-color: var(--gold); background: rgba(200,169,110,0.07); }
+    .nav-icon { font-size: 1rem; width: 20px; text-align: center; }
+    .sidebar-logout {
+      padding: 1.5rem 1.8rem; border-top: 1px solid rgba(200,169,110,0.1);
+      font-size: 0.75rem; letter-spacing: 0.15em; text-transform: uppercase;
+      color: var(--text-muted); cursor: pointer; transition: color 0.3s;
+    }
+    .sidebar-logout:hover { color: var(--red); }
+
+    .main { margin-left: 240px; padding: 2.5rem 3rem; min-height: 100vh; }
+    .page { display: none; animation: fadeIn 0.3s ease; }
+    .page.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    .page-header { margin-bottom: 2.5rem; }
+    .page-title { font-family: 'Cormorant Garamond', serif; font-size: 2.2rem; font-weight: 300; color: var(--white); }
+    .page-sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.3rem; letter-spacing: 0.05em; }
+
+    /* ─── STATS ─── */
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1px; background: rgba(200,169,110,0.1); margin-bottom: 2.5rem; }
+    .stat-card {
+      background: var(--dark-2); padding: 1.8rem;
+      transition: background 0.3s;
+    }
+    .stat-card:hover { background: var(--dark-3); }
+    .stat-card-label { font-size: 0.65rem; letter-spacing: 0.35em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 0.8rem; }
+    .stat-card-num { font-family: 'Cormorant Garamond', serif; font-size: 2.8rem; font-weight: 300; color: var(--gold); line-height: 1; }
+    .stat-card-sub { font-size: 0.72rem; color: var(--text-muted); margin-top: 0.4rem; }
+
+    /* ─── BOOKINGS TABLE ─── */
+    .table-toolbar {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 1.2rem; gap: 1rem; flex-wrap: wrap;
+    }
+    .filter-tabs { display: flex; gap: 2px; }
+    .filter-tab {
+      padding: 0.5rem 1.2rem; font-size: 0.72rem; letter-spacing: 0.15em;
+      text-transform: uppercase; cursor: pointer; background: var(--dark-3);
+      color: var(--text-muted); border: none; font-family: 'Jost', sans-serif;
+      transition: all 0.25s;
+    }
+    .filter-tab.active { background: var(--gold); color: var(--dark); }
+    .search-input {
+      background: var(--dark-2); border: 1px solid rgba(200,169,110,0.15);
+      color: var(--text); font-family: 'Jost', sans-serif; font-size: 0.82rem;
+      padding: 0.5rem 1rem; outline: none; width: 220px; transition: border-color 0.3s;
+    }
+    .search-input:focus { border-color: var(--gold); }
+
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th {
+      background: var(--dark-3); padding: 0.9rem 1rem; text-align: left;
+      font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase;
+      color: var(--gold); font-weight: 400; white-space: nowrap;
+    }
+    tbody tr { border-bottom: 1px solid rgba(200,169,110,0.07); transition: background 0.2s; }
+    tbody tr:hover { background: rgba(200,169,110,0.04); }
+    tbody td { padding: 1rem; font-size: 0.84rem; color: var(--text); vertical-align: middle; }
+    .td-muted { color: var(--text-muted); font-size: 0.78rem; }
+
+    .badge {
+      display: inline-block; padding: 0.25rem 0.75rem; font-size: 0.65rem;
+      letter-spacing: 0.15em; text-transform: uppercase; border-radius: 0; font-weight: 500;
+    }
+    .badge-pending { background: rgba(224,180,85,0.15); color: var(--yellow); border: 1px solid rgba(224,180,85,0.3); }
+    .badge-confirmed { background: rgba(76,175,80,0.12); color: var(--green); border: 1px solid rgba(76,175,80,0.25); }
+    .badge-cancelled { background: rgba(224,85,85,0.12); color: var(--red); border: 1px solid rgba(224,85,85,0.25); }
+
+    .action-btn {
+      padding: 0.35rem 0.9rem; font-size: 0.68rem; letter-spacing: 0.1em;
+      cursor: pointer; border: none; font-family: 'Jost', sans-serif;
+      transition: all 0.25s; margin-right: 0.3rem;
+    }
+    .btn-confirm { background: var(--green); color: #fff; }
+    .btn-confirm:hover { background: #43a047; }
+    .btn-cancel { background: transparent; color: var(--red); border: 1px solid var(--red); }
+    .btn-cancel:hover { background: var(--red); color: #fff; }
+    .btn-view { background: var(--dark-3); color: var(--text-muted); border: 1px solid rgba(200,169,110,0.15); }
+    .btn-view:hover { border-color: var(--gold); color: var(--gold); }
+
+    .empty-state { text-align: center; padding: 4rem 2rem; color: var(--text-muted); }
+    .empty-icon { font-size: 3rem; margin-bottom: 1rem; opacity: 0.4; }
+
+    /* ─── MODAL ─── */
+    .modal-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+      z-index: 200; display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(4px);
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--dark-2); border: 1px solid rgba(200,169,110,0.2);
+      width: 520px; max-width: 95vw; max-height: 90vh; overflow-y: auto;
+      animation: fadeIn 0.25s ease;
+    }
+    .modal-header {
+      padding: 1.5rem 2rem; border-bottom: 1px solid rgba(200,169,110,0.12);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .modal-title { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; color: var(--white); }
+    .modal-close { background: none; border: none; color: var(--text-muted); font-size: 1.4rem; cursor: pointer; transition: color 0.2s; }
+    .modal-close:hover { color: var(--gold); }
+    .modal-body { padding: 2rem; }
+    .detail-row { display: flex; gap: 1rem; margin-bottom: 1.2rem; }
+    .detail-label { font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); min-width: 130px; padding-top: 0.1rem; }
+    .detail-val { font-size: 0.9rem; color: var(--text); line-height: 1.5; }
+    .modal-actions { padding: 1.5rem 2rem; border-top: 1px solid rgba(200,169,110,0.12); display: flex; gap: 0.8rem; }
+    .modal-btn-confirm { flex: 1; padding: 0.9rem; background: var(--green); color: #fff; border: none; font-family: 'Jost', sans-serif; font-size: 0.78rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; transition: background 0.3s; }
+    .modal-btn-confirm:hover { background: #43a047; }
+    .modal-btn-cancel { flex: 1; padding: 0.9rem; background: transparent; color: var(--red); border: 1px solid var(--red); font-family: 'Jost', sans-serif; font-size: 0.78rem; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; transition: all 0.3s; }
+    .modal-btn-cancel:hover { background: var(--red); color: #fff; }
+
+    /* ─── NOTIFICATION TOAST ─── */
+    .toast {
+      position: fixed; bottom: 2rem; right: 2rem; z-index: 999;
+      background: var(--dark-3); border-left: 3px solid var(--gold);
+      padding: 1rem 1.5rem; min-width: 280px;
+      font-size: 0.82rem; color: var(--text);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.4s ease;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-left-color: var(--green); }
+    .toast.error { border-left-color: var(--red); }
+    .toast-title { font-weight: 500; margin-bottom: 0.2rem; }
+
+    /* ─── SETTINGS ─── */
+    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+    .settings-card { background: var(--dark-2); border: 1px solid rgba(200,169,110,0.1); padding: 2rem; }
+    .settings-card-title { font-family: 'Cormorant Garamond', serif; font-size: 1.3rem; color: var(--white); margin-bottom: 1.5rem; }
+    .settings-label { display: block; font-size: 0.65rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--gold); margin-bottom: 0.5rem; }
+    .settings-input {
+      width: 100%; background: var(--dark-3); border: 1px solid rgba(200,169,110,0.15);
+      color: var(--text); font-family: 'Jost', sans-serif; font-size: 0.88rem;
+      padding: 0.7rem 1rem; outline: none; margin-bottom: 1.2rem; transition: border-color 0.3s;
+    }
+    .settings-input:focus { border-color: var(--gold); }
+    .settings-save {
+      background: var(--gold); color: var(--dark); border: none;
+      padding: 0.75rem 2rem; font-family: 'Jost', sans-serif; font-size: 0.75rem;
+      letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; transition: background 0.3s;
+    }
+    .settings-save:hover { background: var(--gold-light); }
+
+    /* ─── INTEGRATION GUIDE ─── */
+    .guide-card { background: var(--dark-2); border: 1px solid rgba(200,169,110,0.1); padding: 2rem; margin-bottom: 1.5rem; }
+    .guide-step { display: flex; gap: 1.2rem; margin-bottom: 1.5rem; }
+    .guide-num {
+      width: 32px; height: 32px; background: var(--gold); color: var(--dark);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 600; flex-shrink: 0;
+    }
+    .guide-text h4 { font-size: 0.9rem; color: var(--white); margin-bottom: 0.3rem; }
+    .guide-text p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.7; }
+    .guide-code {
+      background: var(--dark); border: 1px solid rgba(200,169,110,0.15);
+      padding: 1rem 1.2rem; font-size: 0.78rem; color: var(--gold-light);
+      font-family: monospace; margin-top: 0.5rem; overflow-x: auto; word-break: break-all;
+    }
+
+    @media (max-width: 900px) {
+      .sidebar { width: 60px; }
+      .sidebar-logo, .nav-item span, .sidebar-logout { display: none; }
+      .main { margin-left: 60px; padding: 1.5rem; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .settings-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">KHIM <span style="color:var(--text);font-style:italic;font-weight:300;">Motel</span></div>
+    <p class="login-sub">Admin Dashboard</p>
+    <label class="login-label">Username</label>
+    <input class="login-input" id="login-user" type="text" placeholder="admin" />
+    <label class="login-label">Password</label>
+    <input class="login-input" id="login-pass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <p class="login-error" id="login-error">Incorrect username or password.</p>
+    <p class="login-hint">Default: admin / khim2024</p>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">KHIM <span>Admin Panel</span></div>
+    <nav class="sidebar-nav">
+      <div class="nav-item active" onclick="showPage('dashboard')">
+        <span class="nav-icon">📊</span><span>Dashboard</span>
+      </div>
+      <div class="nav-item" onclick="showPage('bookings')">
+        <span class="nav-icon">📋</span><span>All Bookings</span>
+      </div>
+      <div class="nav-item" onclick="showPage('pending')">
+        <span class="nav-icon">⏳</span><span>Pending Approval</span>
+        <span id="pending-badge" style="margin-left:auto;background:var(--yellow);color:var(--dark);font-size:0.65rem;padding:0.15rem 0.5rem;"></span>
+      </div>
+      <div class="nav-item" onclick="showPage('settings')">
+        <span class="nav-icon">⚙️</span><span>Settings</span>
+      </div>
+      <div class="nav-item" onclick="showPage('setup')">
+        <span class="nav-icon">🔗</span><span>Setup Guide</span>
+      </div>
+    </nav>
+    <div class="sidebar-logout" onclick="doLogout()">⬅ &nbsp;Logout</div>
+  </aside>
+
+  <main class="main">
+
+    <!-- DASHBOARD PAGE -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1 class="page-title">Dashboard</h1>
+        <p class="page-sub">Overview of all bookings at KHIM Motel</p>
+      </div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div style="margin-bottom:1rem;">
+        <p style="font-size:0.68rem;letter-spacing:0.35em;text-transform:uppercase;color:var(--gold);margin-bottom:1rem;">Recent Bookings</p>
+      </div>
+      <div class="table-wrap" id="recent-table-wrap"></div>
+    </div>
+
+    <!-- ALL BOOKINGS PAGE -->
+    <div class="page" id="page-bookings">
+      <div class="page-header">
+        <h1 class="page-title">All Bookings</h1>
+        <p class="page-sub">Full booking history</p>
+      </div>
+      <div class="table-toolbar">
+        <div class="filter-tabs">
+          <button class="filter-tab active" onclick="filterBookings('all', this)">All</button>
+          <button class="filter-tab" onclick="filterBookings('pending', this)">Pending</button>
+          <button class="filter-tab" onclick="filterBookings('confirmed', this)">Confirmed</button>
+          <button class="filter-tab" onclick="filterBookings('cancelled', this)">Cancelled</button>
+        </div>
+        <input class="search-input" id="search-input" placeholder="🔍  Search name or phone…" oninput="renderBookingsTable()" />
+      </div>
+      <div class="table-wrap" id="all-table-wrap"></div>
+    </div>
+
+    <!-- PENDING PAGE -->
+    <div class="page" id="page-pending">
+      <div class="page-header">
+        <h1 class="page-title">Pending Approval</h1>
+        <p class="page-sub">Review and approve or decline new bookings</p>
+      </div>
+      <div class="table-wrap" id="pending-table-wrap"></div>
+    </div>
+
+    <!-- SETTINGS PAGE -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <h1 class="page-title">Settings</h1>
+        <p class="page-sub">Configure notifications and motel details</p>
+      </div>
+      <div class="settings-grid">
+        <div class="settings-card">
+          <h3 class="settings-card-title">📧 Email Notifications</h3>
+          <label class="settings-label">Owner Email Address</label>
+          <input class="settings-input" id="s-owner-email" placeholder="e.g. manager@khimmotel.co.ug" />
+          <label class="settings-label">EmailJS Service ID</label>
+          <input class="settings-input" id="s-emailjs-service" placeholder="service_xxxxxxx" />
+          <label class="settings-label">EmailJS Template ID</label>
+          <input class="settings-input" id="s-emailjs-template" placeholder="template_xxxxxxx" />
+          <label class="settings-label">EmailJS Public Key</label>
+          <input class="settings-input" id="s-emailjs-key" placeholder="your_public_key" />
+          <button class="settings-save" onclick="saveSettings()">Save Settings</button>
+        </div>
+        <div class="settings-card">
+          <h3 class="settings-card-title">💬 WhatsApp Notifications</h3>
+          <label class="settings-label">WhatsApp Number (with country code)</label>
+          <input class="settings-input" id="s-whatsapp" placeholder="+256700000000" />
+          <p style="font-size:0.78rem;color:var(--text-muted);line-height:1.7;margin-bottom:1.2rem;">
+            When a booking comes in, you'll get a WhatsApp message via a direct link. No API needed — just click the notification link from any device.
+          </p>
+          <h3 class="settings-card-title" style="margin-bottom:1rem;">🏨 Motel Details</h3>
+          <label class="settings-label">Motel Phone</label>
+          <input class="settings-input" id="s-phone" placeholder="+256 700 000 000" />
+          <label class="settings-label">Motel Address</label>
+          <input class="settings-input" id="s-address" placeholder="Hoima City, Uganda" />
+          <button class="settings-save" onclick="saveSettings()">Save Settings</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETUP GUIDE PAGE -->
+    <div class="page" id="page-setup">
+      <div class="page-header">
+        <h1 class="page-title">Setup Guide</h1>
+        <p class="page-sub">How to connect real email and WhatsApp notifications</p>
+      </div>
+      <div class="guide-card">
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--white);margin-bottom:1.5rem;">📧 Step 1: Connect Email (Free via EmailJS)</h3>
+        <div class="guide-step">
+          <div class="guide-num">1</div>
+          <div class="guide-text">
+            <h4>Create a free account at EmailJS</h4>
+            <p>Go to <strong style="color:var(--gold)">emailjs.com</strong> and sign up for free. You get 200 emails/month free.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-num">2</div>
+          <div class="guide-text">
+            <h4>Add an Email Service</h4>
+            <p>In EmailJS dashboard → Email Services → Add New Service → connect your Gmail or any email.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-num">3</div>
+          <div class="guide-text">
+            <h4>Create an Email Template</h4>
+            <p>Go to Email Templates → Create New. Use these variables in your template:</p>
+            <div class="guide-code">Subject: New Booking from {{guest_name}} — KHIM Motel<br><br>Body:<br>Guest: {{guest_name}}<br>Phone: {{guest_phone}}<br>Room: {{room_type}}<br>Check-in: {{checkin}}<br>Check-out: {{checkout}}<br>Nights: {{nights}}<br>Total: UGX {{total}}<br>Special Requests: {{special_requests}}</div>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-num">4</div>
+          <div class="guide-text">
+            <h4>Copy your credentials to Settings</h4>
+            <p>Go to Account → API Keys and copy your Public Key. Then copy your Service ID and Template ID into the Settings page of this dashboard.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--white);margin-bottom:1.5rem;">💬 Step 2: WhatsApp Notifications (No API needed)</h3>
+        <div class="guide-step">
+          <div class="guide-num">1</div>
+          <div class="guide-text">
+            <h4>Add your WhatsApp number in Settings</h4>
+            <p>Enter your number with country code, e.g. <strong style="color:var(--gold)">+256700000000</strong>.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-num">2</div>
+          <div class="guide-text">
+            <h4>How it works</h4>
+            <p>When a booking is submitted, a WhatsApp link is automatically generated. Tap it from any device and the booking details will be pre-filled in a WhatsApp message to you. No monthly fees, no API keys.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="guide-card">
+        <h3 style="font-family:'Cormorant Garamond',serif;font-size:1.4rem;color:var(--white);margin-bottom:1.5rem;">🌐 Step 3: Host Your Website</h3>
+        <div class="guide-step">
+          <div class="guide-num">1</div>
+          <div class="guide-text">
+            <h4>Upload both files to any web host</h4>
+            <p>Upload <strong style="color:var(--gold)">index.html</strong> (main website) and <strong style="color:var(--gold)">admin.html</strong> (this dashboard) to your hosting provider. Recommended free option: <strong style="color:var(--gold)">Netlify.com</strong> — drag and drop your files.</p>
+          </div>
+        </div>
+        <div class="guide-step">
+          <div class="guide-num">2</div>
+          <div class="guide-text">
+            <h4>Access your admin dashboard</h4>
+            <p>Visit <strong style="color:var(--gold)">yoursite.com/admin.html</strong> to manage bookings. Default login: <strong style="color:var(--gold)">admin / khim2024</strong>. Change the password in the source code before going live.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- BOOKING DETAIL MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Booking Details</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-actions" id="modal-actions"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <div class="toast-title" id="toast-title"></div>
+  <div id="toast-msg"></div>
+</div>
+
+<script>
+// ─── AUTH ───
+const ADMIN_USER = 'admin';
+const ADMIN_PASS = 'khim2024';
+
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    renderAll();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+  }
+}
+function doLogout() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-user').value = '';
+  document.getElementById('login-pass').value = '';
+}
+
+// ─── DATA ───
+// Bookings stored in localStorage
+function getBookings() {
+  return JSON.parse(localStorage.getItem('khim_bookings') || '[]');
+}
+function saveBookings(arr) {
+  localStorage.setItem('khim_bookings', JSON.stringify(arr));
+}
+function getSettings() {
+  return JSON.parse(localStorage.getItem('khim_settings') || '{}');
+}
+function saveSettingsData(obj) {
+  localStorage.setItem('khim_settings', JSON.stringify(obj));
+}
+
+// Seed demo data if empty
+function seedDemo() {
+  if (getBookings().length > 0) return;
+  const demo = [
+    { id: 'BK001', name: 'Nakato Sandra', phone: '+256 772 111 222', email: 'nakato@email.com', room: 'Double Room', checkin: '2025-07-15', checkout: '2025-07-17', nights: 2, total: 120000, requests: 'Early check-in if possible', status: 'pending', created: '2025-07-10T09:14:00' },
+    { id: 'BK002', name: 'Mugisha Robert', phone: '+256 700 333 444', email: 'mugisha@email.com', room: 'Single Room', checkin: '2025-07-16', checkout: '2025-07-18', nights: 2, total: 80000, requests: '', status: 'confirmed', created: '2025-07-10T11:30:00' },
+    { id: 'BK003', name: 'Akello Grace', phone: '+256 755 555 666', email: '', room: 'Double Room', checkin: '2025-07-20', checkout: '2025-07-21', nights: 1, total: 60000, requests: 'Quiet room please', status: 'pending', created: '2025-07-11T08:05:00' },
+    { id: 'BK004', name: 'Ochieng Peter', phone: '+256 782 777 888', email: 'peter@email.com', room: 'Single Room', checkin: '2025-07-12', checkout: '2025-07-13', nights: 1, total: 40000, requests: '', status: 'cancelled', created: '2025-07-09T14:22:00' },
+  ];
+  saveBookings(demo);
+}
+
+// ─── NAVIGATION ───
+let currentFilter = 'all';
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelectorAll('.nav-item')[['dashboard','bookings','pending','settings','setup'].indexOf(name)].classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'bookings') renderBookingsTable();
+  if (name === 'pending') renderPendingTable();
+  if (name === 'settings') loadSettingsForm();
+}
+
+function renderAll() {
+  seedDemo();
+  renderDashboard();
+  updatePendingBadge();
+}
+
+// ─── STATS ───
+function renderDashboard() {
+  const bookings = getBookings();
+  const pending = bookings.filter(b => b.status === 'pending').length;
+  const confirmed = bookings.filter(b => b.status === 'confirmed').length;
+  const revenue = bookings.filter(b => b.status === 'confirmed').reduce((s, b) => s + b.total, 0);
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-card"><div class="stat-card-label">Total Bookings</div><div class="stat-card-num">${bookings.length}</div><div class="stat-card-sub">All time</div></div>
+    <div class="stat-card"><div class="stat-card-label">Pending Approval</div><div class="stat-card-num" style="color:var(--yellow)">${pending}</div><div class="stat-card-sub">Awaiting review</div></div>
+    <div class="stat-card"><div class="stat-card-label">Confirmed</div><div class="stat-card-num" style="color:var(--green)">${confirmed}</div><div class="stat-card-sub">Active bookings</div></div>
+    <div class="stat-card"><div class="stat-card-label">Revenue (Confirmed)</div><div class="stat-card-num">UGX ${revenue.toLocaleString()}</div><div class="stat-card-sub">Pay on arrival</div></div>
+  `;
+  const recent = [...bookings].sort((a, b) => new Date(b.created) - new Date(a.created)).slice(0, 5);
+  document.getElementById('recent-table-wrap').innerHTML = buildTable(recent, true);
+}
+
+function updatePendingBadge() {
+  const n = getBookings().filter(b => b.status === 'pending').length;
+  const el = document.getElementById('pending-badge');
+  el.textContent = n > 0 ? n : '';
+}
+
+// ─── TABLES ───
+function buildTable(bookings, mini = false) {
+  if (!bookings.length) return `<div class="empty-state"><div class="empty-icon">📭</div><p>No bookings found</p></div>`;
+  return `<table>
+    <thead><tr>
+      <th>ID</th><th>Guest</th><th>Room</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Total (UGX)</th><th>Status</th><th>Actions</th>
+    </tr></thead>
+    <tbody>
+      ${bookings.map(b => `<tr>
+        <td class="td-muted">${b.id}</td>
+        <td><div>${b.name}</div><div class="td-muted">${b.phone}</div></td>
+        <td>${b.room}</td>
+        <td>${b.checkin}</td>
+        <td>${b.checkout}</td>
+        <td>${b.nights}</td>
+        <td>${b.total.toLocaleString()}</td>
+        <td><span class="badge badge-${b.status}">${b.status}</span></td>
+        <td>
+          <button class="action-btn btn-view" onclick="viewBooking('${b.id}')">View</button>
+          ${b.status === 'pending' ? `<button class="action-btn btn-confirm" onclick="confirmBooking('${b.id}')">✓ Confirm</button><button class="action-btn btn-cancel" onclick="cancelBooking('${b.id}')">✕</button>` : ''}
+        </td>
+      </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function renderBookingsTable() {
+  const q = (document.getElementById('search-input')?.value || '').toLowerCase();
+  let all = getBookings();
+  if (currentFilter !== 'all') all = all.filter(b => b.status === currentFilter);
+  if (q) all = all.filter(b => b.name.toLowerCase().includes(q) || b.phone.includes(q));
+  document.getElementById('all-table-wrap').innerHTML = buildTable(all);
+}
+
+function filterBookings(f, el) {
+  currentFilter = f;
+  document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+  renderBookingsTable();
+}
+
+function renderPendingTable() {
+  const pending = getBookings().filter(b => b.status === 'pending');
+  document.getElementById('pending-table-wrap').innerHTML = buildTable(pending);
+}
+
+// ─── ACTIONS ───
+function confirmBooking(id) {
+  const bookings = getBookings();
+  const b = bookings.find(x => x.id === id);
+  if (!b) return;
+  b.status = 'confirmed';
+  saveBookings(bookings);
+  sendWhatsAppNotification(b, 'confirmed');
+  showToast('success', '✓ Booking Confirmed', `${b.name}'s booking has been confirmed.`);
+  renderAll(); renderBookingsTable(); renderPendingTable();
+  closeModal();
+}
+
+function cancelBooking(id) {
+  if (!confirm('Cancel this booking?')) return;
+  const bookings = getBookings();
+  const b = bookings.find(x => x.id === id);
+  if (!b) return;
+  b.status = 'cancelled';
+  saveBookings(bookings);
+  showToast('error', 'Booking Cancelled', `${b.name}'s booking has been cancelled.`);
+  renderAll(); renderBookingsTable(); renderPendingTable();
+  closeModal();
+}
+
+function viewBooking(id) {
+  const b = getBookings().find(x => x.id === id);
+  if (!b) return;
+  document.getElementById('modal-title').textContent = `Booking ${b.id}`;
+  document.getElementById('modal-body').innerHTML = `
+    <div class="detail-row"><span class="detail-label">Guest Name</span><span class="detail-val">${b.name}</span></div>
+    <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val">${b.phone}</span></div>
+    <div class="detail-row"><span class="detail-label">Email</span><span class="detail-val">${b.email || '—'}</span></div>
+    <div class="detail-row"><span class="detail-label">Room Type</span><span class="detail-val">${b.room}</span></div>
+    <div class="detail-row"><span class="detail-label">Check-In</span><span class="detail-val">${b.checkin}</span></div>
+    <div class="detail-row"><span class="detail-label">Check-Out</span><span class="detail-val">${b.checkout}</span></div>
+    <div class="detail-row"><span class="detail-label">Nights</span><span class="detail-val">${b.nights}</span></div>
+    <div class="detail-row"><span class="detail-label">Total</span><span class="detail-val" style="color:var(--gold);font-size:1.1rem;">UGX ${b.total.toLocaleString()}</span></div>
+    <div class="detail-row"><span class="detail-label">Special Requests</span><span class="detail-val">${b.requests || 'None'}</span></div>
+    <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val"><span class="badge badge-${b.status}">${b.status}</span></span></div>
+    <div class="detail-row"><span class="detail-label">Submitted</span><span class="detail-val td-muted">${new Date(b.created).toLocaleString()}</span></div>
+  `;
+  document.getElementById('modal-actions').innerHTML = b.status === 'pending' ? `
+    <button class="modal-btn-confirm" onclick="confirmBooking('${b.id}')">✓ Confirm Booking</button>
+    <button class="modal-btn-cancel" onclick="cancelBooking('${b.id}')">✕ Cancel Booking</button>
+  ` : `<button class="modal-btn-confirm" onclick="closeModal()" style="background:var(--dark-3);color:var(--text);">Close</button>`;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); }
+
+// ─── WHATSAPP ───
+function sendWhatsAppNotification(b, action) {
+  const s = getSettings();
+  const wa = s.whatsapp || '+256700000000';
+  const msg = encodeURIComponent(
+    `🏨 KHIM Motel - Booking ${action.toUpperCase()}\n\n` +
+    `📋 ID: ${b.id}\n👤 Guest: ${b.name}\n📞 Phone: ${b.phone}\n` +
+    `🛏 Room: ${b.room}\n📅 Check-in: ${b.checkin}\n📅 Check-out: ${b.checkout}\n` +
+    `🌙 Nights: ${b.nights}\n💰 Total: UGX ${b.total.toLocaleString()}\n` +
+    (b.requests ? `📝 Requests: ${b.requests}\n` : '') +
+    `\nStatus: ${action.toUpperCase()}`
+  );
+  // Open in new tab for owner to send
+  window.open(`https://wa.me/${wa.replace(/[^0-9+]/g,'')}?text=${msg}`, '_blank');
+}
+
+// ─── SETTINGS ───
+function loadSettingsForm() {
+  const s = getSettings();
+  document.getElementById('s-owner-email').value = s.ownerEmail || '';
+  document.getElementById('s-emailjs-service').value = s.emailjsService || '';
+  document.getElementById('s-emailjs-template').value = s.emailjsTemplate || '';
+  document.getElementById('s-emailjs-key').value = s.emailjsKey || '';
+  document.getElementById('s-whatsapp').value = s.whatsapp || '';
+  document.getElementById('s-phone').value = s.phone || '';
+  document.getElementById('s-address').value = s.address || '';
+}
+function saveSettings() {
+  saveSettingsData({
+    ownerEmail: document.getElementById('s-owner-email').value,
+    emailjsService: document.getElementById('s-emailjs-service').value,
+    emailjsTemplate: document.getElementById('s-emailjs-template').value,
+    emailjsKey: document.getElementById('s-emailjs-key').value,
+    whatsapp: document.getElementById('s-whatsapp').value,
+    phone: document.getElementById('s-phone').value,
+    address: document.getElementById('s-address').value,
+  });
+  showToast('success', 'Settings Saved', 'Your settings have been updated.');
+}
+
+// ─── TOAST ───
+function showToast(type, title, msg) {
+  const t = document.getElementById('toast');
+  t.className = `toast ${type}`;
+  document.getElementById('toast-title').textContent = title;
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+// Close modal on overlay click
+document.getElementById('modal-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+</script>
+</body>
+</html>
